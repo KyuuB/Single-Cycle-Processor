@@ -1,0 +1,52 @@
+Project Notes
+
+Sample part 1:
+
+10001110000010110000000000000100 Instruction Type: I
+Operation: lw 
+Rs: $16 
+Rt: $11 
+Immediate: 4 (or 0x4)
+00000001001010100110100000100010 Instruction Type: R
+Operation: sub
+Rs: $9
+Rt: $10
+Rd: $13
+Shamt: 0
+Funct: 34 (or 0x22)
+00000001101010111000100000101010 Instruction Type: R
+Operation: slt
+Rs: $13
+Rt: $11
+Rd: $17
+Shamt: 0
+Funct: 42 (or 0x2a)
+00010010001000000000000000000011 Instruction Type: I
+Operation: beq
+Rs: $17
+Rt: $0
+Immediate: 3 (or 0x3)
+00000001101010110110100000100000 Instruction Type: R
+Operation: add
+Rs: $13
+Rt: $11
+Rd: $13
+Shamt: 0
+Funct: 32 (or 0x20)
+00000010001011010110100000100101 Instruction Type: R
+Operation: or
+Rs: $17
+Rt: $13
+Rd: $13
+Shamt: 0
+Funct: 37 (or 0x25)
+10101110000011010000000000000000 Instruction Type: I
+Operation: sw
+Rs: $16
+Rt: $13
+Immediate: 0 (or 0x0)
+10101110000011010000000000000000 Instruction Type: I
+Operation: sw
+Rs: $16
+Rt: $13
+Immediate: 0 (or 0x0)
