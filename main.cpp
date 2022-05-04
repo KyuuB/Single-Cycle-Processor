@@ -116,24 +116,94 @@ void Execute(int* rs, int* rt, int* rd, int offset, int* pc, string alu_op) {
             break;
     }
 
-    cout << "rs = " << *rs << endl;
-    cout << "rt = " << *rt << endl;
-    cout << "rd = " << *rd << endl;
+    cout << "rs = " << rs << endl;
+    cout << "rt = " << rt << endl;
+    cout << "rd = " << rd << endl;
     cout << "offset = " << offset << endl;
     cout << "alu_op = " << alu_op << endl;
 }
 
-//Control most of the logic in the execute using opcode and funct from decode
-void ControlUnit(string opcode, string funct) {
+//Creates signals that will let execute know several logic paths to take
+string ControlUnit(string opcode, string funct) {
     /*
     From opcode generate 9 control signals, global variables for each control signal
     Execute, mem, and writeback all use control signals
     */
-
    
+   string alu_op = "1111";
+
+   //Initialize global control signals to reset for each cycle
+    regWrite = 0;
+    regDst = 0;
+    branch = 0;
+    aluSrc = 0;
+    memWrite = 0;
+    memToReg = 0;
+    memRead = 0;
+    instType = 0;
+    jump = 0;
+
+    //R-type
+    if (opcode == "000000") {
+        //Global variables set for each opcode
+        regDst = 1; regWrite = 1; instType = 10;
+        //Find 4-bit ALU Op values using funct for R-type instructions
+        // ADD
+        if (funct == "100000" ) {
+            alu_op = "0010";
+        }
+        // SUB
+        else if (funct == "100010") {
+            alu_op = "0110";
+        }
+        // AND
+        else if (funct == "100100") {
+            alu_op = "0000";
+        }
+        // OR
+        else if (funct == "100101") {
+            alu_op = "0001";
+        }
+        // SLT
+        else if (funct == "101010"){
+            alu_op = "0111";
+        }
+        // NOR
+        else if (funct == "100111"){
+            alu_op = "1100";
+        }
+        else {
+            cout << "ERROR! FUNCT NOT FOUND!" << endl;
+        }
+
+        cout << "alu-op  =  " << alu_op << endl;
+    }
+    // lw 
+    else if (opcode == "100011") {
+        aluSrc = 1; memToReg = 1; regWrite = 1; memRead = 1;
+    }
+    // sw
+    else if (opcode == "101011") {
+        aluSrc = 1; memWrite = 1;
+    }
+    // beq
+    else if (opcode == "000100" ) {
+        branch = 1; instType = 1;
+    }
+    // j
+    else if (opcode == "000010") {
+        jump = 1; 
+    }
+    // No matching opcode
+    else {
+        cout << "ERROR! OPCODE NOT FOUND!" << endl;
+    }
+
+    return alu_op;
+
 }
 
-// HW3 extended
+// Takes machine code from fetch, int pointer pc, and int pointer jump target
 void Decode(string machineCode, int* pc, int* jump_target) { 
     /*
     Array register values read from resiter file 32 values "registerfile"
@@ -144,14 +214,14 @@ void Decode(string machineCode, int* pc, int* jump_target) {
     //Initialized values
 
     //changed to pointers to get values and register id for execute
-    int* Rs;
-    int* Rt;
-    int* Rd;
+    int* Rs = 0;
+    int* Rt = 0;
+    int* Rd = 0;
     int index = 0;
     int offset = 0;
     string opcode = "";
     string funct = "";
-    string alu_op = "";
+    string alu_op = "1111";
 
     //Gets rid of new line that comes in text file
     machineCode.pop_back();
@@ -297,6 +367,9 @@ void Decode(string machineCode, int* pc, int* jump_target) {
             cout << "Rt: $" << dec << set10.to_ulong() << endl;
             index = stoi(rt, nullptr, 2);
             Rt = &(registerfile[index]);
+            
+            //Set a default for rd
+            Rd = &(registerfile[0]);
 
             //Bitset of 26 and converting to decimal and hex 
             string immediate = inst.substr(16, 16);
@@ -307,10 +380,9 @@ void Decode(string machineCode, int* pc, int* jump_target) {
         }
     }
 
-    cout << "opcode = " << opcode << endl;
-    cout << "funct = " << funct << endl;
-    ControlUnit(opcode, funct);
-    //Execute(Rs, Rt, Rd, offset, pc, alu_op);
+    //Use Control unit to set control signals and return alu_op for Execute;
+    alu_op = ControlUnit(opcode, funct);
+    Execute(Rs, Rt, Rd, offset, pc, alu_op);
 }
 
 // Fetch machine code one at a time, cycle through using pc
@@ -376,10 +448,11 @@ int main() {
 
     //maxAddress will be the end of the text file 
     int maxAddress = numLines * 4;
+
     // Cycle Starts here
     while (pc < maxAddress)
     {
-        //Get machine code form fetch using global variable pc
+        //Get machine code from fetch using global variable pc
         string fetchedCode = "";
         fetchedCode = Fetch(&pc);
         
