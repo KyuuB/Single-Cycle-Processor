@@ -14,6 +14,7 @@ int total_clock_cycles = 0;
 int jump_target = 0;
 int branch_target = 0;
 int alu_zero = 0;
+
 // control signals
 int regWrite = 0;
 int regDst = 0;
@@ -24,43 +25,33 @@ int memToReg = 0;
 int memRead = 0;
 int instType = 0;
 int jump = 0;
+
 //registerfile with initialized hex values
 static int registerfile [32] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 5, 0, 0, 0, 0, 0, 70};
 
-// Fetch machine code one at a time, cycle through using pc
-string Fetch(int *pc) {
+//Last step in the cycle, sw will update memory, while lw will update register, increment clock cycles
+void Writeback() {
+    /*
+    Get results and update register file array
+    Increment clock cycles
+    */
 
-    //Initialized values for file, line, machine code string, totalLines, and linenumber
-    fstream myfile;
-    string line;
-    string machineCode;
-    int totalLines;
-    int lineNumber = 0;
+   total_clock_cycles = total_clock_cycles + 1;
 
-    //ADD INPUT FROM USER FOR WHICH FILE WE WOULD LIKE
-    // ! ! ! ! ! ! ! ! ! ! ! ! ! ! 
-    myfile.open("sample_part1.txt", ios::in);
-    if (myfile.is_open()) {
-        while(getline(myfile, line)) {
-            if (lineNumber == *pc){
-                machineCode = line;
-            }
-            lineNumber = lineNumber + 4;
-        }
-        cout << "machineCode = " << machineCode << endl;
-    }
-
-    int next_pc = *pc + 4;
-
-    //Add logic that will copy one of the three possible pc values
-    // (next_pc, branch_target, and jump_target),
-    // This will be used in the next fetch instruction.
-    *pc = next_pc;
-
-    return machineCode;
 }
 
-//sign extended comes from decode()
+//Memory with addresses, 32 slots incremented by 4.
+void Mem() {
+    /*
+    32 entries initialized to zero
+    Used with store word sw and load word lw
+    */
+    //from execute, get memory address
+    int d_mem[32] = {0};
+
+}
+
+//Do most of the arithmetic, and offset additions.
 void Execute(int* rs, int* rt, int* rd, int offset, int* pc, string alu_op) {
     /*
     ALU OP received 4 bit alu_op add, <, and operations
@@ -132,6 +123,7 @@ void Execute(int* rs, int* rt, int* rd, int offset, int* pc, string alu_op) {
     cout << "alu_op = " << alu_op << endl;
 }
 
+//Control most of the logic in the execute using opcode and funct from decode
 void ControlUnit(string opcode, string funct) {
     /*
     From opcode generate 9 control signals, global variables for each control signal
@@ -321,28 +313,38 @@ void Decode(string machineCode, int* pc, int* jump_target) {
     //Execute(Rs, Rt, Rd, offset, pc, alu_op);
 }
 
-//Memory with addresses, 32 slots incremented by 4.
-void Mem() {
-    /*
-    32 entries initialized to zero
-    Used with store word sw and load word lw
-    */
-    //from execute, get memory address
-    int d_mem[32] = {0};
+// Fetch machine code one at a time, cycle through using pc
+string Fetch(int *pc) {
 
+    //Initialized values for file, line, machine code string, totalLines, and linenumber
+    fstream myfile;
+    string line;
+    string machineCode;
+    int totalLines;
+    int lineNumber = 0;
+
+    //ADD INPUT FROM USER FOR WHICH FILE WE WOULD LIKE
+    // ! ! ! ! ! ! ! ! ! ! ! ! ! ! 
+    myfile.open("sample_part1.txt", ios::in);
+    if (myfile.is_open()) {
+        while(getline(myfile, line)) {
+            if (lineNumber == *pc){
+                machineCode = line;
+            }
+            lineNumber = lineNumber + 4;
+        }
+        cout << "machineCode = " << machineCode << endl;
+    }
+
+    int next_pc = *pc + 4;
+
+    //Add logic that will copy one of the three possible pc values
+    // (next_pc, branch_target, and jump_target),
+    // This will be used in the next fetch instruction.
+    *pc = next_pc;
+
+    return machineCode;
 }
-
-
-void Writeback() {
-    /*
-    Get results and update register file array
-    Increment clock cycles
-    */
-
-   total_clock_cycles = total_clock_cycles + 1;
-
-}
-
 
 // lw, sw, add, sub, and, or, slt, nor, beq, j
 int main() {
