@@ -11,6 +11,7 @@ using namespace std;
 int pc = 0;
 int total_clock_cycles = 0;
 int jump_target = 0;
+int alu_zero = 0;
 // control signals
 //registerfile with initialized hex values
 static int registerfile [32] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 5, 0, 0, 0, 0, 0, 70};
@@ -27,7 +28,7 @@ string Fetch(int *pc) {
 
     //ADD INPUT FROM USER FOR WHICH FILE WE WOULD LIKE
     // ! ! ! ! ! ! ! ! ! ! ! ! ! ! 
-    myfile.open("sample_part1.txt");
+    myfile.open("sample_part1.txt", ios::in);
     if (myfile.is_open()) {
         while(getline(myfile, line)) {
             if (lineNumber == *pc){
@@ -49,22 +50,20 @@ string Fetch(int *pc) {
 }
 
 //sign extended comes from decode()
-void Execute(int rs, int rt, int rd, int sign_extended_offset, int* registerfile, int *pc) {
+void Execute(int rs, int rt, int rd, int offset, int* pc) {
     /*
     ALU OP received 4 bit alu_op add, <, and operations
     Zero output: 1 bit intitialized to zero, will be used with next_pc
     Branch target address updated and used by fetch() next_pc + 4
     */
-   cout << rs << endl;
-   cout << rt << endl;
-   cout << rd << endl;
-   cout << sign_extended_offset << endl;
-   cout << registerfile[0] << endl;
-   cout << pc << endl;
+   cout << "rs = " << rs << endl;
+   cout << "rt = " << rt << endl;
+   cout << "rd = " << rd << endl;
+   cout << "offset = " << offset << endl;
 }
 
 // HW3 extended
-void Decode(string machineCode, int *pc, int *jump_target) { 
+void Decode(string machineCode, int* pc, int* jump_target) { 
     /*
     Array register values read from resiter file 32 values "registerfile"
     Sign extension (page lecture slide 15 processor 1)
@@ -98,10 +97,12 @@ void Decode(string machineCode, int *pc, int *jump_target) {
         //Go through all instructions until we have a matching function code
         if (set6.to_ulong() == 32) {
             cout << "Operation: add" << endl;
+            //alu_op = 0010
         }
         else if (set6.to_ulong() == 36) 
         {
             cout << "Operation: and" << endl;
+            //alu_op = 0000
         }
         else if (set6.to_ulong() == 8) 
         {
@@ -134,17 +135,22 @@ void Decode(string machineCode, int *pc, int *jump_target) {
         string rs = inst.substr(6, 5);
         bitset<5> set2(rs);
         cout << "Rs: $" << dec << set2.to_ulong() << endl;
+        //Turn machine code into register file id
         Rs = stoi(rs, nullptr, 2);
+        Rs = registerfile[Rs];
 
         string rt = inst.substr(11, 5);
         bitset<5> set3(rt);
         cout << "Rt: $" << dec << set3.to_ulong() << endl;
         Rt = stoi(rt, nullptr, 2);
+        Rt = registerfile[Rt];
 
         string rd = inst.substr(16, 5);
         bitset<5> set4(rd);
         cout << "Rd: $" << dec << set4.to_ulong() << endl;
+        //Turn machine code into register file id
         Rd = stoi(rd, nullptr, 2);
+        Rd = registerfile[Rd];
 
         string shamt = inst.substr(21, 5);
         bitset<5> set5(shamt);
@@ -167,6 +173,9 @@ void Decode(string machineCode, int *pc, int *jump_target) {
             bitset<26> set7(address);
             //Convert bitset to decimal and hex
             //cout << "Immediate: " << dec << set7.to_ulong() << " (or 0x" << hex << set7.to_ulong() << ")" << endl;
+            int jt = stoi(address, nullptr, 2);
+            *jump_target = jt * 4;
+            
         }
         //If opcode is 3, then jal 
         else if (set0.to_ulong() == 3)
@@ -177,6 +186,8 @@ void Decode(string machineCode, int *pc, int *jump_target) {
             string address = inst.substr(6, 26);
             bitset<26> set8(address);
             //cout << "Immediate: " << dec << set8.to_ulong() << " (or 0x" << hex << set8.to_ulong() << ")" << endl;
+            int jt = stoi(address, nullptr, 2);
+            *jump_target = jt * 4;
         }
         else {
             //cout << "Instruction Type: I" << endl;
@@ -203,19 +214,24 @@ void Decode(string machineCode, int *pc, int *jump_target) {
             bitset<5> set9(rs);
             cout << "Rs: $" << dec << set9.to_ulong() << endl;
             Rs = stoi(rs, nullptr, 2);
+            Rs = registerfile[Rs];
 
             string rt = inst.substr(11, 5);
             bitset<5> set10(rt);
             cout << "Rt: $" << dec << set10.to_ulong() << endl;
             Rt = stoi(rt, nullptr, 2);
+            Rt = registerfile[Rt];
 
             //Bitset of 26 and converting to decimal and hex 
             string immediate = inst.substr(16, 16);
             bitset<26> set11(immediate);
             //cout << "Immediate: " << dec << set11.to_ulong() << " (or 0x" << hex << set11.to_ulong() << ")" << endl;
+            //May need to calculate offset 
+            offset = stoi(immediate, nullptr, 2);
         }
     }
-    //Execute(Rs, Rt, Rd, offset, registerfile, pc);
+
+    Execute(Rs, Rt, Rd, offset, pc);
 }
 
 

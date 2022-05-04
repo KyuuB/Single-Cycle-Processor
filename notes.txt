@@ -3,6 +3,38 @@ Project Notes
 Maybe use int *pc when knowing if there will be a jump branch or jump address
 if statement if jumping will be used and update *pc with jump target.
 
+Control Unit:
+Opcode of instruction will be used for generating selector values
+regWrite: if we write to register?
+regDst: rs, rt, rd location for read or write
+branch: zero from alu
+aluSrc: If we need to add two registers or add one register with sign extension to find memory(lw)
+ALU code needs function from machine code
+memWrite: if we write to memory?
+memToReg: If we write the result from alu or from memory
+memRead: If we read from memory?
+instType: 2 bit code for instruction type, and function field used for ALU Control
+
+lw/sw instType = 00     ALU function = add alu_op = 0010
+beq instType = 01       ALU function = subtract alu_op = 0110
+R-type instType = 10    ALU function = funct code with alu_op = below
+
+ALU Control:
+alu_op  Function
+0000    and 
+0001    or
+0010    add
+0110    subtract
+0111    slt
+1100    nor
+
+For R-Type instructions, regWrite, regDst, instType = 1, 1, 10 respectively
+
+For lw regWrite, aluSrc, instType, memToReg, memToRead = 1, 1, 00, 1, 1 respectively
+
+For beq branch, instType = 
+
+
 Sample part 1:
 
 10001110000010110000000000000100 Instruction Type: I
