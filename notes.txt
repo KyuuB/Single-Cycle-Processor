@@ -1,5 +1,8 @@
 Project Notes
 
+Maybe use int *pc when knowing if there will be a jump branch or jump address
+if statement if jumping will be used and update *pc with jump target.
+
 Sample part 1:
 
 10001110000010110000000000000100 Instruction Type: I

@@ -12,6 +12,8 @@ int pc = 0;
 int total_clock_cycles = 0;
 int jump_target = 0;
 // control signals
+//registerfile with initialized hex values
+static int registerfile [32] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 5, 0, 0, 0, 0, 0, 70};
 
 // Fetch machine code one at a time, cycle through using pc
 string Fetch(int *pc) {
@@ -46,14 +48,35 @@ string Fetch(int *pc) {
     return machineCode;
 }
 
+//sign extended comes from decode()
+void Execute(int rs, int rt, int rd, int sign_extended_offset, int* registerfile, int *pc) {
+    /*
+    ALU OP received 4 bit alu_op add, <, and operations
+    Zero output: 1 bit intitialized to zero, will be used with next_pc
+    Branch target address updated and used by fetch() next_pc + 4
+    */
+   cout << rs << endl;
+   cout << rt << endl;
+   cout << rd << endl;
+   cout << sign_extended_offset << endl;
+   cout << registerfile[0] << endl;
+   cout << pc << endl;
+}
+
 // HW3 extended
-void Decode(string machineCode) { 
+void Decode(string machineCode, int *pc, int *jump_target) { 
     /*
     Array register values read from resiter file 32 values "registerfile"
     Sign extension (page lecture slide 15 processor 1)
     Jump target address shift left 2, use next_pc to calculate first 4 bits
     */
     
+    //Initialized values
+    int Rs = 0;
+    int Rt = 0;
+    int Rd = 0;
+    int offset = 0;
+
     //Gets rid of new line that comes in text file
     machineCode.pop_back();
     //Machine code turns to instruction
@@ -65,8 +88,8 @@ void Decode(string machineCode) {
 
     //If opcode is Zero, then it is an R type instruction.
     if (set0.to_ulong() == 0) { 
-        cout << "Instruction Type: R" << endl;
-
+        //R Instruction Type
+        //cout << Instruction Type: R << endl;
         //Need function to figure out the operation
         string funct = inst.substr(26, 6);
         bitset<6> set6(funct);
@@ -75,10 +98,6 @@ void Decode(string machineCode) {
         //Go through all instructions until we have a matching function code
         if (set6.to_ulong() == 32) {
             cout << "Operation: add" << endl;
-        }
-        else if (set6.to_ulong() == 33) 
-        {
-            cout << "Operation: addu" << endl;
         }
         else if (set6.to_ulong() == 36) 
         {
@@ -100,25 +119,9 @@ void Decode(string machineCode) {
         {
             cout << "Operation: slt" << endl;
         }
-        else if (set6.to_ulong() == 43) 
-        {
-            cout << "Operation: sltu" << endl;
-        }
-        else if (set6.to_ulong() == 0) 
-        {
-            cout << "Operation: sll" << endl;
-        }
-        else if (set6.to_ulong() == 2) 
-        {
-            cout << "Operation: srl" << endl;
-        }
         else if (set6.to_ulong() == 34) 
         {
             cout << "Operation: sub" << endl;
-        }
-        else if (set6.to_ulong() == 35) 
-        {
-            cout << "Operation: subu" << endl;
         }
         //No matching then this should be a problem.
         else {
@@ -131,113 +134,62 @@ void Decode(string machineCode) {
         string rs = inst.substr(6, 5);
         bitset<5> set2(rs);
         cout << "Rs: $" << dec << set2.to_ulong() << endl;
+        Rs = stoi(rs, nullptr, 2);
 
         string rt = inst.substr(11, 5);
         bitset<5> set3(rt);
         cout << "Rt: $" << dec << set3.to_ulong() << endl;
+        Rt = stoi(rt, nullptr, 2);
 
         string rd = inst.substr(16, 5);
         bitset<5> set4(rd);
         cout << "Rd: $" << dec << set4.to_ulong() << endl;
+        Rd = stoi(rd, nullptr, 2);
 
         string shamt = inst.substr(21, 5);
         bitset<5> set5(shamt);
-        cout << "Shamt: " << dec << set5.to_ulong() << endl;
+        //cout << "Shamt: " << dec << set5.to_ulong() << endl;
+        
 
-        //Funct was calculted earlier to figure out the operation.
+        //Funct was calculated earlier to figure out the operation.
         //Display both decimal and hex.
-        cout << "Funct: " << dec << set6.to_ulong() << " (or 0x" << hex << set6.to_ulong() << ")" << endl;
+        //cout << "Funct: " << dec << set6.to_ulong() << " (or 0x" << hex << set6.to_ulong() << ")" << endl;
     }
     //If opcode is not zero, then it is either j or i type instruction
     else {
         //If opcode is 2, then j instruction
         if (set0.to_ulong() == 2){
-            cout << "Instruction Type: J" << endl;
+            //cout << "Instruction Type: J" << endl;
             cout << "Operation: j" << endl;
 
             //Substring of the instruction with a bitset of 26 for the address/immediate
             string address = inst.substr(6, 26);
             bitset<26> set7(address);
             //Convert bitset to decimal and hex
-            cout << "Immediate: " << dec << set7.to_ulong() << " (or 0x" << hex << set7.to_ulong() << ")" << endl;
+            //cout << "Immediate: " << dec << set7.to_ulong() << " (or 0x" << hex << set7.to_ulong() << ")" << endl;
         }
         //If opcode is 3, then jal 
         else if (set0.to_ulong() == 3)
         {
-            cout << "Instruction Type: J" << endl;
+            //cout << "Instruction Type: J" << endl;
             cout << "Operation: jal" << endl;
             //Bit set 
             string address = inst.substr(6, 26);
             bitset<26> set8(address);
-            cout << "Immediate: " << dec << set8.to_ulong() << " (or 0x" << hex << set8.to_ulong() << ")" << endl;
+            //cout << "Immediate: " << dec << set8.to_ulong() << " (or 0x" << hex << set8.to_ulong() << ")" << endl;
         }
         else {
-            cout << "Instruction Type: I" << endl;
+            //cout << "Instruction Type: I" << endl;
 
             //If else for all operations of I type.
 
-            if (set0.to_ulong() == 8) {
-                cout << "Operation: addi" << endl;
-            }
-            else if (set0.to_ulong() == 9)
-            {
-                cout << "Operation: addiu" << endl;
-            }
-            else if (set0.to_ulong() == 12)
-            {
-                cout << "Operation: andi" << endl;
-            }
-            else if (set0.to_ulong() == 4)
+            if (set0.to_ulong() == 4)
             {
                 cout << "Operation: beq" << endl;
-            }
-            else if (set0.to_ulong() == 5)
-            {
-                cout << "Operation: bne" << endl;
-            }
-            else if (set0.to_ulong() == 36)
-            {
-                cout << "Operation: lbu" << endl;
-            }
-            else if (set0.to_ulong() == 37)
-            {
-                cout << "Operation: lhu" << endl;
-            }
-            else if (set0.to_ulong() == 48)
-            {
-                cout << "Operation: ll" << endl;
-            }
-            else if (set0.to_ulong() == 15)
-            {
-                cout << "Operation: lui" << endl;
             }
             else if (set0.to_ulong() == 35)
             {
                 cout << "Operation: lw" << endl;
-            }
-            else if (set0.to_ulong() == 13)
-            {
-                cout << "Operation: ori" << endl;
-            }
-            else if (set0.to_ulong() == 10)
-            {
-                cout << "Operation: slti" << endl;
-            }
-            else if (set0.to_ulong() == 11)
-            {
-                cout << "Operation: sltiu" << endl;
-            }
-            else if (set0.to_ulong() == 40)
-            {
-                cout << "Operation: sb" << endl;
-            }
-            else if (set0.to_ulong() == 56)
-            {
-                cout << "Operation: sc" << endl;
-            }
-            else if (set0.to_ulong() == 41)
-            {
-                cout << "Operation: sh" << endl;
             }
             else if (set0.to_ulong() == 43)
             {
@@ -250,29 +202,22 @@ void Decode(string machineCode) {
             string rs = inst.substr(6, 5);
             bitset<5> set9(rs);
             cout << "Rs: $" << dec << set9.to_ulong() << endl;
-            
+            Rs = stoi(rs, nullptr, 2);
+
             string rt = inst.substr(11, 5);
             bitset<5> set10(rt);
             cout << "Rt: $" << dec << set10.to_ulong() << endl;
+            Rt = stoi(rt, nullptr, 2);
 
             //Bitset of 26 and converting to decimal and hex 
             string immediate = inst.substr(16, 16);
             bitset<26> set11(immediate);
-            cout << "Immediate: " << dec << set11.to_ulong() << " (or 0x" << hex << set11.to_ulong() << ")" << endl;
+            //cout << "Immediate: " << dec << set11.to_ulong() << " (or 0x" << hex << set11.to_ulong() << ")" << endl;
         }
     }
-    
-    cout << endl;
-
+    //Execute(Rs, Rt, Rd, offset, registerfile, pc);
 }
 
-void Execute() {
-    /*
-    ALU OP received 4 bit alu_op add, <, and operations
-    Zero output: 1 bit intitialized to zero, will be used with next_pc
-    Branch target address updated and used by fetch() next_pc + 4
-    */
-}
 
 void Mem() {
     /*
@@ -338,12 +283,20 @@ int main() {
         fetchedCode = Fetch(&pc);
         
         //Decode the machine code from fetched.
-        Decode(fetchedCode);
+        Decode(fetchedCode, &pc, &jump_target);
+
+        //Execute() is inside of Decode function 
+
+
 
         Writeback();
-        cout << "total_clock_cycles " << total_clock_cycles << ":" << endl;
+
+        cout << "total_clock_cycles " << total_clock_cycles << " :" << endl;
         cout << "register is modified to " << endl;
-        cout << "pc is modified to 0x" << pc << endl << endl;
+        stringstream ss;
+        ss << std::hex << pc;
+        string hexpc(ss.str());
+        cout << "pc is modified to 0x" << hexpc << endl << endl;
     }
     
     cout << "program terminated: " << endl;
