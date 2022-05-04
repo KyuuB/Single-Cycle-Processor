@@ -32,7 +32,7 @@ For R-Type instructions, regWrite, regDst, instType = 1, 1, 10 respectively
 
 For lw regWrite, aluSrc, instType, memToReg, memToRead = 1, 1, 00, 1, 1 respectively
 
-For beq branch, instType = 
+For beq branch, instType = 1, 01
 
 
 Sample part 1:

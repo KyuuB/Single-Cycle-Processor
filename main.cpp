@@ -8,11 +8,22 @@
 
 using namespace std;
 
+//Global Variables
 int pc = 0;
 int total_clock_cycles = 0;
 int jump_target = 0;
+int branch_target = 0;
 int alu_zero = 0;
 // control signals
+int regWrite = 0;
+int regDst = 0;
+int branch = 0;
+int aluSrc = 0;
+int memWrite = 0;
+int memToReg = 0;
+int memRead = 0;
+int instType = 0;
+int jump = 0;
 //registerfile with initialized hex values
 static int registerfile [32] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 5, 0, 0, 0, 0, 0, 70};
 
@@ -50,16 +61,82 @@ string Fetch(int *pc) {
 }
 
 //sign extended comes from decode()
-void Execute(int rs, int rt, int rd, int offset, int* pc) {
+void Execute(int rs, int rt, int rd, int offset, int* pc, string alu_op) {
     /*
     ALU OP received 4 bit alu_op add, <, and operations
     Zero output: 1 bit intitialized to zero, will be used with next_pc
     Branch target address updated and used by fetch() next_pc + 4
     */
-   cout << "rs = " << rs << endl;
-   cout << "rt = " << rt << endl;
-   cout << "rd = " << rd << endl;
-   cout << "offset = " << offset << endl;
+    alu_zero = 0;
+
+    //Turn hex to decimal, cause it's easier for me to tell if operations are working
+    stringstream Rs;
+    Rs << rs;
+    Rs >> hex >> rs;
+
+    stringstream Rt;
+    Rt << rt;
+    Rt >> hex >> rt;
+    
+    stringstream Rd;
+    Rd << rd;
+    Rd >> hex >> rd;
+
+    //turning aluop from string to int
+    int aluOp = stoi(alu_op);
+    cout << "aluOp = " << aluOp << endl;
+
+    //Switch case for alu op
+    switch(aluOp) {
+        //AND statement
+        case 0:
+            if ((rs & rd) == 1) rd = 1;
+            else rd = 0;
+            break;
+
+        //OR
+        case 1:
+            if ((rs || rd) == 1) rd = 1;
+            else rd = 0;
+            break;
+
+        //ADD
+        case 10:
+            rd = rs = rt;
+            break;
+
+
+        //SUB
+        case 110:
+            rd = rs - rt;
+            break;
+
+        //SLT
+        case 111:
+            if (rs < rt) rd = 1;
+            else rd = 0;
+            break;
+
+        //NOR
+        case 1100:
+            if ((rs || rd) != 1) rd = 1;
+            break;
+    }
+
+    cout << "rs = " << rs << endl;
+    cout << "rt = " << rt << endl;
+    cout << "rd = " << rd << endl;
+    cout << "offset = " << offset << endl;
+    cout << "alu_op = " << alu_op << endl;
+}
+
+void ControlUnit() {
+    /*
+    From opcode generate 9 control signals, global variables for each control signal
+    Execute, mem, and writeback all use control signals
+    */
+
+   
 }
 
 // HW3 extended
@@ -69,12 +146,23 @@ void Decode(string machineCode, int* pc, int* jump_target) {
     Sign extension (page lecture slide 15 processor 1)
     Jump target address shift left 2, use next_pc to calculate first 4 bits
     */
-    
+    //Initialize Control Signals
+    regWrite = 0;
+    regDst = 0;
+    branch = 0;
+    aluSrc = 0;
+    memWrite = 0;
+    memToReg = 0;
+    memRead = 0;
+    instType = 0;
+    jump = 0;
+
     //Initialized values
     int Rs = 0;
     int Rt = 0;
     int Rd = 0;
     int offset = 0;
+    string alu_op = "1111";
 
     //Gets rid of new line that comes in text file
     machineCode.pop_back();
@@ -82,8 +170,8 @@ void Decode(string machineCode, int* pc, int* jump_target) {
     string inst = machineCode;
     //Get opcode from binary input using bitset of 6 for all opcodes 
     bitset<6> set0(inst); //Gets Opcode here.
-    
     //Based on opcode we determine between I, J, and R type instructions
+    
 
     //If opcode is Zero, then it is an R type instruction.
     if (set0.to_ulong() == 0) { 
@@ -93,16 +181,20 @@ void Decode(string machineCode, int* pc, int* jump_target) {
         string funct = inst.substr(26, 6);
         bitset<6> set6(funct);
     
+        //Because of R-Type
+        regWrite = 1;
+        regDst = 1;
+        instType = 10;
         //If else for all operations of R type.
         //Go through all instructions until we have a matching function code
         if (set6.to_ulong() == 32) {
             cout << "Operation: add" << endl;
-            //alu_op = 0010
+            alu_op = "0010";
         }
         else if (set6.to_ulong() == 36) 
         {
             cout << "Operation: and" << endl;
-            //alu_op = 0000
+            alu_op = "0000";
         }
         else if (set6.to_ulong() == 8) 
         {
@@ -111,18 +203,22 @@ void Decode(string machineCode, int* pc, int* jump_target) {
         else if (set6.to_ulong() == 39) 
         {
             cout << "Operation: nor" << endl;
+            alu_op = "1100";
         }
         else if (set6.to_ulong() == 37) 
         {
             cout << "Operation: or" << endl;
+            alu_op = "0001";
         }
         else if (set6.to_ulong() == 42) 
         {
             cout << "Operation: slt" << endl;
+            alu_op = "0111";
         }
         else if (set6.to_ulong() == 34) 
         {
             cout << "Operation: sub" << endl;
+            alu_op = "0110";
         }
         //No matching then this should be a problem.
         else {
@@ -188,6 +284,8 @@ void Decode(string machineCode, int* pc, int* jump_target) {
             //cout << "Immediate: " << dec << set8.to_ulong() << " (or 0x" << hex << set8.to_ulong() << ")" << endl;
             int jt = stoi(address, nullptr, 2);
             *jump_target = jt * 4;
+            jump = 1;
+            //Will skip many parts and update pc with jump address
         }
         else {
             //cout << "Instruction Type: I" << endl;
@@ -197,14 +295,24 @@ void Decode(string machineCode, int* pc, int* jump_target) {
             if (set0.to_ulong() == 4)
             {
                 cout << "Operation: beq" << endl;
+                alu_op = "0110";
+
+                branch = 1;
+                instType = 01;
             }
             else if (set0.to_ulong() == 35)
             {
                 cout << "Operation: lw" << endl;
+                alu_op = "0010";
+
+                instType = 0;
             }
             else if (set0.to_ulong() == 43)
             {
                 cout << "Operation: sw" << endl;
+                alu_op = "0110";
+                
+                instType = 0;
             }
             else {
                 cout << "ERROR!" << endl;
@@ -230,17 +338,18 @@ void Decode(string machineCode, int* pc, int* jump_target) {
             offset = stoi(immediate, nullptr, 2);
         }
     }
-
-    Execute(Rs, Rt, Rd, offset, pc);
+    ControlUnit();
+    Execute(Rs, Rt, Rd, offset, pc, alu_op);
 }
 
-
+//Memory with addresses, 32 slots incremented by 4.
 void Mem() {
     /*
     32 entries initialized to zero
     Used with store word sw and load word lw
     */
 }
+
 
 void Writeback() {
     /*
@@ -252,14 +361,6 @@ void Writeback() {
 
 }
 
-void ControlUnit() {
-    /*
-    From opcode generate 9 control signals, global variables for each control signal
-    Execute, mem, and writeback all use control signals
-    */
-
-   
-}
 
 // lw, sw, add, sub, and, or, slt, nor, beq, j
 int main() {
@@ -303,7 +404,7 @@ int main() {
 
         //Execute() is inside of Decode function 
 
-
+        
 
         Writeback();
 
