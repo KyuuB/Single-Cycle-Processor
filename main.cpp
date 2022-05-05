@@ -15,7 +15,7 @@ int jump_target = 0;
 int branch_target = 0;
 int alu_zero = 0;
 
-// control signals
+// Global control signals
 int regWrite = 0;
 int regDst = 0;
 int branch = 0;
@@ -27,100 +27,136 @@ int instType = 0;
 int jump = 0;
 
 //registerfile with initialized hex values
-static int registerfile [32] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 5, 0, 0, 0, 0, 0, 70};
+static int registerfile [31] = { 0x0, 0x0, 0x0, 0, 0, 0, 0, 0, 0, 0x20, 5, 0, 0, 0, 0, 0, 0x70};
 
 //Last step in the cycle, sw will update memory, while lw will update register, increment clock cycles
-void Writeback() {
-    /*
-    Get results and update register file array
-    Increment clock cycles
-    */
+void Writeback(int* dataMemory, int result) {
 
-   total_clock_cycles = total_clock_cycles + 1;
+    //Get registerID and the results from Execute()
+    // update registerfile at the address and return the result from Memory.
+    registerfile[*dataMemory] = result;
+
+    //Increment clock cycles
+    total_clock_cycles = total_clock_cycles + 1;
 
 }
 
 //Memory with addresses, 32 slots incremented by 4.
-void Mem() {
+void Mem(int* address, int result, string op) {
     /*
     32 entries initialized to zero
     Used with store word sw and load word lw
+    sw store value into memory
+    get value int* x, store into 
+    lw load memory into register value
     */
     //from execute, get memory address
-    int d_mem[32] = {0};
+    /*
+    Mem() function should receive memory address for both LW and SW instructions and data to 
+    write to the memory for SW. For the LW, the value stored in the indicated d-mem array entry 
+    should be retrieved and sent to the Writeback() function that is explained below.   
+    */
+
+    // 0 4 8 c 10 14 18 1c 20 24 28 2c 30 34 38 3c 40 44 48 4c 50 54 58 5c 60 64 68 6c 70 74 78 7c 80
+    // 0 1 2 3 4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32
+    static int d_mem[31] = {0x0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x5, 0x10 };
+
+    //Need address which will be the 0x00 ... 0x80
+    //index = some hex number
+    int index = 0;
+    //shift left logial by two to get hex to index number
+    index = *address << 2;
+    
+    int x, y;
+
+    stringstream stream;
+
+    x = index;
+    cin >> x;
+    stream << x;
+    stream >> hex >> y;
+    cout << y;
+
+    int* dataMemory = &d_mem[index];
+    
+    //If lw then memory at address should be return to writeback to be entered int registerfile
+    if (op == "lw") {
+        Writeback(dataMemory, result);
+    }
+
+    
 
 }
 
 //Do most of the arithmetic, and offset additions.
-void Execute(int* rs, int* rt, int* rd, int offset, int* pc, string alu_op) {
+int Execute(int* rs, int* rt, int* rd, int offset, int* pc, string alu_op) {
     /*
-    ALU OP received 4 bit alu_op add, <, and operations
+    ALU OP received 4 bit alu_op for add, <, and operations
     Zero output: 1 bit intitialized to zero, will be used with next_pc
     Branch target address updated and used by fetch() next_pc + 4
     */
     alu_zero = 0;
-    // rs = *rs;
-    // rt = *rt;
-    // rd = *rd;
-    //Turn hex to decimal, cause it's easier for me to tell if operations are working
-    // stringstream Rs;
-    // Rs << rs;
-    // Rs >> hex >> rs;
-
-    // stringstream Rt;
-    // Rt << rt;
-    // Rt >> hex >> rt;
     
-    // stringstream Rd;
-    // Rd << rd;
-    // Rd >> hex >> rd;
-
+    int result = 0;
     //turning aluop from string to int
     int aluOp = stoi(alu_op);
     cout << "aluOp = " << aluOp << endl;
-
+    cout << "offset = " << offset << endl;
     //Switch case for alu op
     switch(aluOp) {
         //AND statement
         case 0:
-            if ((*rs & *rt) == 1) *rd = 1;
+            if ((*rs & *rt) == 1) result = 1;
             else rd = 0;
             break;
 
         //OR
         case 1:
-            if ((*rs || *rt) == 1) *rd = 1;
+            if ((*rs || *rt) == 1) result = 1;
             else rd = 0;
             break;
 
         //ADD
         case 10:
-            *rd = *rs + *rt;
+            result = *rs + *rt;
             break;
 
 
         //SUB
         case 110:
-            *rd = *rs - *rt;
+            result = *rs - *rt;
             break;
 
         //SLT
         case 111:
-            if (*rs < *rt) *rd = 1;
+            if (*rs < *rt) result = 1;
             else rd = 0;
             break;
 
         //NOR
         case 1100:
-            if ((*rs || *rt) != 1) *rd = 1;
+            if ((*rs || *rt) != 1) result = 1;
             break;
     }
 
-    cout << "rs = " << rs << endl;
-    cout << "rt = " << rt << endl;
-    cout << "rd = " << rd << endl;
-    cout << "offset = " << offset << endl;
-    cout << "alu_op = " << alu_op << endl;
+    //MUX For if branch is enabled
+    if (branch == 1) {
+        branch_target = (offset * 4) + *pc;
+        *pc = branch_target;
+    }
+    //If jump control signal is enabled, the pc = offset/immediate shift left by 2
+    if (jump == 1) {
+        jump_target = (offset * 4 );
+        *pc = jump_target;
+    }
+    // cout << "rs = " << rs << endl;
+    // cout << "rt = " << rt << endl;
+    // cout << "rd = " << rd << endl;
+    // cout << "offset = " << offset << endl;
+    // cout << "alu_op = " << alu_op << endl;
+
+    return result;
+
 }
 
 //Creates signals that will let execute know several logic paths to take
@@ -219,6 +255,8 @@ void Decode(string machineCode, int* pc, int* jump_target) {
     int* Rd = 0;
     int index = 0;
     int offset = 0;
+    int* address = 0;
+    int result = 0;
     string opcode = "";
     string funct = "";
     string alu_op = "1111";
@@ -284,12 +322,15 @@ void Decode(string machineCode, int* pc, int* jump_target) {
         cout << "Rs: $" << dec << set2.to_ulong() << endl;
         //Turn machine code into register file id
         index = stoi(rs, nullptr, 2);
+        //File ID -> value 
         Rs = &(registerfile[index]);
+        cout << "*Rs = " << *Rs << endl;
 
         string rt = inst.substr(11, 5);
         bitset<5> set3(rt);
         index = stoi(rt, nullptr, 2);
         Rt = &(registerfile[index]);
+        cout << "*Rt = " << *Rt << endl;
 
         string rd = inst.substr(16, 5);
         bitset<5> set4(rd);
@@ -382,7 +423,9 @@ void Decode(string machineCode, int* pc, int* jump_target) {
 
     //Use Control unit to set control signals and return alu_op for Execute;
     alu_op = ControlUnit(opcode, funct);
-    Execute(Rs, Rt, Rd, offset, pc, alu_op);
+    result = Execute(Rs, Rt, Rd, offset, pc, alu_op);
+    //PROBABLY CHANGE, NEED DATA MEMORY
+    Writeback(&result, result);
 }
 
 // Fetch machine code one at a time, cycle through using pc
@@ -426,10 +469,10 @@ int main() {
     string line;
     int numLines = 0;
 
-    // USED TO GET INPUT FROM USER
-    //string file;
-    //cout << "Enter the program file name to run: " << endl << endl;
-    //cin >> file;
+    //USED TO GET INPUT FROM USER
+    // string file;
+    // cout << "Enter the program file name to run: " << endl << endl;
+    // cin >> file;
     // myfile.open(file, ios::in);
     // if (myfile.is_open()) {
     //     while(getline(myfile, line)) {
@@ -438,7 +481,7 @@ int main() {
     // }
 
 
-    //Find number of lines in the text file to get a limit for the while loop.
+    // //Find number of lines in the text file to get a limit for the while loop.
     myfile.open("sample_part1.txt", ios::in);
     if (myfile.is_open()) {
         while(getline(myfile, line)) {
@@ -459,25 +502,26 @@ int main() {
         //Decode the machine code from fetched.
         Decode(fetchedCode, &pc, &jump_target);
 
-        //ControlUnit()
+        //MIGHT CHANGE FOR DECODE TO BE INSED Fetch()
 
-        //handles alu operations as well as branching and the zero output for updating pc value
-        // with branch address
-        //Execute() is inside of Decode function 
+        //ControlUnit() inside of decode where control signals and alu-code will be generated
 
-        //Mem() accessed with address from execute
+        //Execute() is inside of Decode function handles alu computations will return computation
 
-        //Writes back values into memory for sw, or load memory into registers for lw
-        Writeback();
+        //Mem() accessed with address from execute, 
 
+        //Print out modified registers and the current clock cycle
         cout << "total_clock_cycles " << total_clock_cycles << " :" << endl;
         cout << "register is modified to " << endl;
+        
+        //pc in decimal, changed to hex
         stringstream ss;
         ss << std::hex << pc;
         string hexpc(ss.str());
         cout << "pc is modified to 0x" << hexpc << endl << endl;
     }
     
+    //Print terminated program and total clock cycles
     cout << "program terminated: " << endl;
     cout << "total execution time is " << total_clock_cycles << " cycles" << endl;
     
