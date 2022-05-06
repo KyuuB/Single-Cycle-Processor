@@ -6,7 +6,7 @@ if statement if jumping will be used and update *pc with jump target.
 Control Unit:
 Opcode of instruction will be used for generating selector values
 regWrite: if we write to register?
-regDst: rs, rt, rd location for read or write
+regDst: rs, rt, rd location for read or write. regDst on: rd = write value, regDst off: rt = write value
 branch: zero from alu
 aluSrc: If we need to add two registers or add one register with sign extension to find memory(lw)
 ALU code needs function from machine code

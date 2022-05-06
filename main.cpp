@@ -8,6 +8,8 @@
 
 using namespace std;
 
+//sample_part1.txt
+//sample_part2.txt
 //Global Variables
 int pc = 0;
 int total_clock_cycles = 0;
@@ -89,7 +91,7 @@ void Mem(int* address, int result, string op) {
 }
 
 //Do most of the arithmetic, and offset additions.
-int Execute(int* rs, int* rt, int* rd, int offset, int* pc, string alu_op) {
+int Execute(int* rs, int* rt, int* rd, int offset, int* pc, int* address, string alu_op) {
     /*
     ALU OP received 4 bit alu_op for add, <, and operations
     Zero output: 1 bit intitialized to zero, will be used with next_pc
@@ -100,7 +102,6 @@ int Execute(int* rs, int* rt, int* rd, int offset, int* pc, string alu_op) {
     int result = 0;
     //turning aluop from string to int
     int aluOp = stoi(alu_op);
-    cout << "aluOp = " << aluOp << endl;
     cout << "offset = " << offset << endl;
     //Switch case for alu op
     switch(aluOp) {
@@ -139,8 +140,17 @@ int Execute(int* rs, int* rt, int* rd, int offset, int* pc, string alu_op) {
             break;
     }
 
+    //MUX for regDst
+    //regDst 0 means rt is the write register, if regDst is 1, then rd is the write register
+    if (regDst == 1) {
+        address = rd;
+    }
+    else {
+        address = rt;
+    }
+
     //MUX For if branch is enabled
-    if (branch == 1) {
+    if ((branch == 1) && (*rs == *rt)) {
         branch_target = (offset * 4) + *pc;
         *pc = branch_target;
     }
@@ -148,6 +158,13 @@ int Execute(int* rs, int* rt, int* rd, int offset, int* pc, string alu_op) {
     if (jump == 1) {
         jump_target = (offset * 4 );
         *pc = jump_target;
+    }
+    if (regWrite == 1) {
+        //Writeback();
+    }
+    //lw 
+    if (aluSrc == 1 && memToReg == 1) {
+        
     }
     // cout << "rs = " << rs << endl;
     // cout << "rt = " << rt << endl;
@@ -166,9 +183,9 @@ string ControlUnit(string opcode, string funct) {
     Execute, mem, and writeback all use control signals
     */
    
-   string alu_op = "1111";
+    string alu_op = "1111";
 
-   //Initialize global control signals to reset for each cycle
+    //Initialize global control signals to reset for each cycle
     regWrite = 0;
     regDst = 0;
     branch = 0;
@@ -220,9 +237,9 @@ string ControlUnit(string opcode, string funct) {
     }
     // sw
     else if (opcode == "101011") {
-        aluSrc = 1; memWrite = 1;
+        aluSrc = 1; memWrite = 1; 
     }
-    // beq
+    // beq might need to account for result being true, ie. 1 = true, and 0 being false
     else if (opcode == "000100" ) {
         branch = 1; instType = 1;
     }
@@ -423,7 +440,7 @@ void Decode(string machineCode, int* pc, int* jump_target) {
 
     //Use Control unit to set control signals and return alu_op for Execute;
     alu_op = ControlUnit(opcode, funct);
-    result = Execute(Rs, Rt, Rd, offset, pc, alu_op);
+    result = Execute(Rs, Rt, Rd, offset, pc, address, alu_op);
     //PROBABLY CHANGE, NEED DATA MEMORY
     Writeback(&result, result);
 }
@@ -470,24 +487,22 @@ int main() {
     int numLines = 0;
 
     //USED TO GET INPUT FROM USER
-    // string file;
-    // cout << "Enter the program file name to run: " << endl << endl;
-    // cin >> file;
-    // myfile.open(file, ios::in);
-    // if (myfile.is_open()) {
-    //     while(getline(myfile, line)) {
-    //         numLines = numLines + 1;
-    //     }
-    // }
-
-
-    // //Find number of lines in the text file to get a limit for the while loop.
-    myfile.open("sample_part1.txt", ios::in);
+    string file;
+    cout << "Enter the program file name to run: " << endl << endl;
+    cin >> file;
+    myfile.open(file, ios::in);
     if (myfile.is_open()) {
         while(getline(myfile, line)) {
             numLines = numLines + 1;
         }
     }
+    // //Find number of lines in the text file to get a limit for the while loop.
+    // myfile.open("sample_part1.txt", ios::in);
+    // if (myfile.is_open()) {
+    //     while(getline(myfile, line)) {
+    //         numLines = numLines + 1;
+    //     }
+    // }
 
     //maxAddress will be the end of the text file 
     int maxAddress = numLines * 4;
