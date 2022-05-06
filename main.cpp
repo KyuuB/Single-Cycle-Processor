@@ -28,8 +28,10 @@ int memRead = 0;
 int instType = 0;
 int jump = 0;
 
-//registerfile with initialized hex values
-static int registerfile [31] = { 0x0, 0x0, 0x0, 0, 0, 0, 0, 0, 0, 0x20, 5, 0, 0, 0, 0, 0, 0x70};
+//registerfile with initialized hex values     
+//static int registerfile [31] = { 0x0, 0x0, 0, 0, 0, 0, 0, 0, 0, 0x20, 5, 0, 0, 0, 0, 0, 0x70};
+  static int registerfile [31] = { 0x0, 0x0, 0, 0, 0x5, 0x2, 0, 0xa, 0, 0, 0, 0, 0, 0, 0, 0, 0x20};
+
 
 int* zero = registerfile;
 
@@ -202,10 +204,16 @@ int Mem(int* address, int result) {
     write to the memory for SW. For the LW, the value stored in the indicated d-mem array entry 
     should be retrieved and sent to the Writeback() function that is explained below.   
     */
-
+    
+    //sample text 1 input
                          // 0 4 8 c 10 14 18 1c 20 24 28 2c 30 34 38 3c 40 44 48 4c 50 54 58 5c 60 64 68 6c 70 74 78 7c 80
                            // 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28    29     30 31 32
-    static int d_mem[31] = {0x0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x5, 0x10 };
+    //static int d_mem[31] = {0x0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x5, 0x10 };
+    
+    //sample text 2 input
+    static int d_mem[31] = { 0x0 };
+
+
 
     //Need address which will be the 0x00 ... 0x80
     //index = some hex number
@@ -661,7 +669,7 @@ int main() {
     // myfile.open(file, ios::in);
 
     //Find number of lines in the text file to get a limit for the while loop.
-    myfile.open("sample_part2.txt", ios::in);
+    myfile.open("sample_part2.txt");
     
     if (myfile.is_open()) {
         while(getline(myfile, line)) {
@@ -690,7 +698,7 @@ int main() {
         
         //pc in decimal, changed to hex
         stringstream ss;
-        ss << std::hex << pc;
+        ss << hex << pc;
         string hexpc(ss.str());
         cout << "pc is modified to 0x" << hexpc << endl << endl;
     }
@@ -699,5 +707,8 @@ int main() {
     cout << "program terminated: " << endl;
     cout << "total execution time is " << total_clock_cycles << " cycles" << endl;
     
+    myfile.close();
+
     return 0;
+    
 }
