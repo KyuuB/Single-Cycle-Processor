@@ -622,7 +622,7 @@ void Decode(string machineCode, int* pc, int* jump_target) {
 }
 
 // Fetch machine code one at a time, cycle through using pc
-void Fetch(int *pc) {
+void Fetch(int *pc, string filename) {
 
     //Initialized values for file, line, machine code string, totalLines, and linenumber
     fstream myfile;
@@ -633,7 +633,7 @@ void Fetch(int *pc) {
 
     //ADD INPUT FROM USER FOR WHICH FILE WE WOULD LIKE
     // ! ! ! ! ! ! ! ! ! ! ! ! ! ! 
-    myfile.open("sample_part1.txt", ios::in);
+    myfile.open(filename, ios::in);
     if (myfile.is_open()) {
         while(getline(myfile, line)) {
             if (lineNumber == *pc){
@@ -659,6 +659,7 @@ int main() {
 
     //Initialized values for the text file, lines in the file, and number of lines.
     ifstream myfile;
+    string filename = "sample_part2.txt";
     string line;
     int numLines = 0;
 
@@ -669,9 +670,9 @@ int main() {
     // myfile.open(file, ios::in);
 
     //Find number of lines in the text file to get a limit for the while loop.
-    myfile.open("sample_part2.txt");
+    myfile.open(filename);
     
-    if (myfile.is_open()) {
+    if (myfile.is_open(), ios::in) {
         while(getline(myfile, line)) {
             numLines = numLines + 1;
         }
@@ -684,7 +685,7 @@ int main() {
     while (pc < maxAddress)
     {
         //Fetch to start cycle and grab machine code using program counter
-        Fetch(&pc);
+        Fetch(&pc,filename);
         
         //Decode called after fetch, uses machine code grabbed from fetch
 
