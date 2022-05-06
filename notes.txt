@@ -5,7 +5,7 @@ if statement if jumping will be used and update *pc with jump target.
 
 Control Unit:
 Opcode of instruction will be used for generating selector values
-regWrite: if we write to register?
+regWrite: if we write to register, writeback()
 regDst: rs, rt, rd location for read or write. regDst on: rd = write value, regDst off: rt = write value
 branch: zero from alu
 aluSrc: If we need to add two registers or add one register with sign extension to find memory(lw)
@@ -30,7 +30,9 @@ alu_op  Function
 
 For R-Type instructions, regWrite, regDst, instType = 1, 1, 10 respectively
 
-For lw regWrite, aluSrc, instType, memToReg, memToRead = 1, 1, 00, 1, 1 respectively
+For lw regWrite, aluSrc, instType, memToReg, memRead = 1, 1, 00, 1, 1 respectively
+
+For sw aluSrc, memWrite
 
 For beq branch, instType = 1, 01
 
