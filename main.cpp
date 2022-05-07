@@ -38,8 +38,8 @@ int jalMemToReg = 0;
 int jrJump = 0;
 
 //registerfile with initialized hex values     
-//static int registerfile [64] = { 0x0, 0x0, 0, 0, 0, 0, 0, 0, 0, 0x20, 5, 0, 0, 0, 0, 0, 0x70};
-static int registerfile [64] = { 0x0, 0x0, 0, 0, 0x5, 0x2, 0, 0xa, 0, 0, 0, 0, 0, 0, 0, 0, 0x20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+static int registerfile [64] = { 0x0, 0x0, 0, 0, 0, 0, 0, 0, 0, 0x20, 5, 0, 0, 0, 0, 0, 0x70};
+//static int registerfile [64] = { 0x0, 0x0, 0, 0, 0x5, 0x2, 0, 0xa, 0, 0, 0, 0, 0, 0, 0, 0, 0x20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 
 int* zero = registerfile;
@@ -65,14 +65,15 @@ void Writeback(int* dataMemory, int result) {
     if (regWrite == 1 && jrJump == 0) {
         int index = dataMemory - zero;
         registerfile[index] = result;
-        cout << "index = " << index << endl;
-        cout << "registerfile[index] = " << registerfile[index] << endl;
         
         stringstream ss;
         ss << hex << result;
         string res ( ss.str() );
 
-        cout << "$";
+        cout << "result = " << result << endl;
+        cout << "ss = " << ss << endl;
+        cout << "res = " << res << endl;
+        cout << "$";    
         switch (index)
         {
         case 0:
@@ -196,13 +197,12 @@ void Writeback(int* dataMemory, int result) {
     if (jalMemToReg == 1) {
         // need to set registerfile[*dataMemory]
         registerfile[*dataMemory] = result / 4;
-        cout << "31 = " << registerfile[31] << endl;
 
         stringstream s3;
         s3 << hex << registerfile[31];
         string raValue (s3.str());
 
-        cout << "$ra is modified to 0x" << raValue;
+        cout << "$ra is modified to 0x" << raValue << endl;
     }
 }
 
@@ -227,10 +227,10 @@ int Mem(int* address, int result) {
     //sample text 1 input
                          // 0 4 8 c 10 14 18 1c 20 24 28 2c 30 34 38 3c 40 44 48 4c 50 54 58 5c 60 64 68 6c 70 74 78 7c 80
                            // 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28    29     30 31 32
-    //static int d_mem[31] = {0x0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x5, 0x10 };
+    static int d_mem[31] = {0x0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x5, 0x10 };
     
     //sample text 2 input
-    static int d_mem[31] = { 0x0 };
+    //static int d_mem[31] = { 0x0 };
 
 
 
@@ -577,11 +577,11 @@ void Decode(string machineCode, int* pc, int* jump_target) {
         string shamt = inst.substr(21, 5);
         bitset<5> set5(shamt);
         //cout << "Shamt: " << dec << set5.to_ulong() << endl;
-        
 
         //Funct was calculated earlier to figure out the operation.
         //Display both decimal and hex.
         //cout << "Funct: " << dec << set6.to_ulong() << " (or 0x" << hex << set6.to_ulong() << ")" << endl;
+    
     }
     //If opcode is not zero, then it is either j or i type instruction
     else {
@@ -596,7 +596,8 @@ void Decode(string machineCode, int* pc, int* jump_target) {
             //Convert bitset to decimal and hex
             //cout << "Immediate: " << dec << set7.to_ulong() << " (or 0x" << hex << set7.to_ulong() << ")" << endl;
             int jt = stoi(address, nullptr, 2);
-            offset = jt * 4;
+            offset = jt;
+            *jump_target = offset;
             Rs = &(registerfile[0]);
             Rt = &(registerfile[0]);
             Rd = &(registerfile[0]);
@@ -707,7 +708,7 @@ int main() {
 
     //Initialized values for the text file, lines in the file, and number of lines.
     ifstream myfile;
-    string filename = "sample_part2.txt";
+    string filename = "sample_part1.txt";
     string line;
     int numLines = 0;
 
