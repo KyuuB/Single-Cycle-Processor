@@ -36,6 +36,13 @@ For sw aluSrc, memWrite
 
 For beq branch, instType = 1, 01
 
+JAL and JR new instructions, Extended MIPS CPU Lecture 3 ias 4 8 - 13
+1.) check instructions type of jal and jr, so proper fields are checked
+2.) new control signals to run the functions 
+3.) configure control signals to run the functions that each instruction needs
+    a.) JAL: 1.)jump_target instruction  and 2.) update $ra with pc + 4
+    b.) JR: 1.)read $ra value and 2.) jump to address in $ra
+
 
 Sample part 1:
 
@@ -86,4 +93,50 @@ Immediate: 0 (or 0x0)
 Operation: sw
 Rs: $16
 Rt: $13
+Immediate: 0 (or 0x0)
+
+sample part 2 : 
+
+00001100000000000000000000000010
+Instruction Type: J
+Operation: jal
+Immediate: 2 (or 0x2)
+
+00001000000000000000000000000101
+Instruction Type: J
+Operation: j
+Immediate: 5 (or 0x5)
+
+00000000100001010100000000100000
+Instruction Type: R
+Operation: add
+Rs: $4
+Rt: $5
+Rd: $8
+Shamt: 0
+Funct: 32 (or 0x20)
+
+00000000111010000001000000100010
+Instruction Type: R
+Operation: sub
+Rs: $7
+Rt: $8
+Rd: $2
+Shamt: 0
+Funct: 34 (or 0x22)
+
+00000011111000000000000000001000
+Instruction Type: R
+Operation: jr
+Rs: $31
+Rt: $0
+Rd: $0
+Shamt: 0
+Funct: 8 (or 0x8)
+
+10101110000000100000000000000000
+Instruction Type: I
+Operation: sw
+Rs: $16
+Rt: $2
 Immediate: 0 (or 0x0)

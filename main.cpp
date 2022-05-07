@@ -28,9 +28,18 @@ int memRead = 0;
 int instType = 0;
 int jump = 0;
 
+//jal and jr control signals
+// regDst will now be $ra($31)   used in r-type instructions but a instead we set 
+// ra,rs, or rd = &registerfile[31]
+// memToReg will now be PC + 4   used in lw 
+
+int jalRegDst = 0;
+int jalMemToReg = 0;
+int jrJump = 0;
+
 //registerfile with initialized hex values     
-//static int registerfile [31] = { 0x0, 0x0, 0, 0, 0, 0, 0, 0, 0, 0x20, 5, 0, 0, 0, 0, 0, 0x70};
-  static int registerfile [31] = { 0x0, 0x0, 0, 0, 0x5, 0x2, 0, 0xa, 0, 0, 0, 0, 0, 0, 0, 0, 0x20};
+//static int registerfile [64] = { 0x0, 0x0, 0, 0, 0, 0, 0, 0, 0, 0x20, 5, 0, 0, 0, 0, 0, 0x70};
+static int registerfile [64] = { 0x0, 0x0, 0, 0, 0x5, 0x2, 0, 0xa, 0, 0, 0, 0, 0, 0, 0, 0, 0x20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 
 int* zero = registerfile;
@@ -43,9 +52,9 @@ void Writeback(int* dataMemory, int result) {
     // update registerfile at the address and return the result from Memory.
     //grab index from hexcode dataMemory
 
-    cout << "dataMemory" << dataMemory << endl;
-    cout << "*dataMemory" << *dataMemory << endl;
-    cout << "result" << result << endl;
+    cout << "dataMemory = " << dataMemory << endl;
+    cout << "*dataMemory = " << *dataMemory << endl;
+    cout << "result = " << result << endl;
     
     //Increment clock cycles
     total_clock_cycles = total_clock_cycles + 1;
@@ -53,7 +62,7 @@ void Writeback(int* dataMemory, int result) {
     //Print out modified registers and the current clock cycle
     cout << "total_clock_cycles " << total_clock_cycles << " :" << endl;
 
-    if (regWrite == 1) {
+    if (regWrite == 1 && jrJump == 0) {
         int index = dataMemory - zero;
         registerfile[index] = result;
         cout << "index = " << index << endl;
@@ -176,7 +185,6 @@ void Writeback(int* dataMemory, int result) {
         string value ( s1.str() );
         cout << "value = " << value << endl;
         
-        //
         stringstream s2;
         s2 << hex << result;
         string memory ( s2.str() );
@@ -185,6 +193,17 @@ void Writeback(int* dataMemory, int result) {
         cout << "memory 0x" << memory << " is modified to 0x" << value << endl;
     }
 
+    if (jalMemToReg == 1) {
+        // need to set registerfile[*dataMemory]
+        registerfile[*dataMemory] = result / 4;
+        cout << "31 = " << registerfile[31] << endl;
+
+        stringstream s3;
+        s3 << hex << registerfile[31];
+        string raValue (s3.str());
+
+        cout << "$ra is modified to 0x" << raValue;
+    }
 }
 
 //Memory with addresses, 32 slots incremented by 4
@@ -314,10 +333,23 @@ void Execute(int* rs, int* rt, int* rd, int offset, int* pc, string alu_op) {
     if (regDst == 1) {
         returnAddress = rd;
     }
+    //If a jal function is being used, we will use 31 as the return address for $ra
+    else if (jalRegDst == 1){
+        *returnAddress = 31; //index used in writeback as 
+    }
     else {
         returnAddress = rt;
     }
-
+    if (jrJump == 1) {
+        cout << "*PC = " << *pc << endl;
+        *pc = *rs;
+        cout << "changed *PC = " << *pc << endl;
+    }
+    if (jalMemToReg == 1) {
+        //This result will be sent to register ra ie 31
+        cout << "jalMemToReg *pc = " << *pc << endl;
+        result = (*pc) * 4;
+    }
     //Datapath For if branch is enabled, compare values for outcome 
     if ((branch == 1) && (*rs == *rt)) {
         branch_target = (offset * 4) + *pc;
@@ -346,7 +378,6 @@ void Execute(int* rs, int* rt, int* rd, int offset, int* pc, string alu_op) {
     // cout << "rd = " << rd << endl;
     // cout << "offset = " << offset << endl;
     // cout << "alu_op = " << alu_op << endl;
-    //return address is rd or rt depending, result should be the the number from memory or something
     Writeback(returnAddress, result);
 }
 
@@ -370,6 +401,9 @@ string ControlUnit(string opcode, string funct) {
     memRead = 0;
     instType = 0;
     jump = 0;
+    jalMemToReg = 0;
+    jalRegDst = 0;
+    jrJump = 0;
 
     //ALU Control, determined by opcode and function
     if (opcode == "000000") {
@@ -400,6 +434,10 @@ string ControlUnit(string opcode, string funct) {
         else if (funct == "100111"){
             alu_op = "1100";
         }
+        // JR
+        else if (funct == "001000") {
+            jrJump = 1;
+        }
         else {
             std::cout << "ERROR! FUNCT NOT FOUND!" << endl;
         }
@@ -422,6 +460,10 @@ string ControlUnit(string opcode, string funct) {
     // j
     else if (opcode == "000010") {
         jump = 1; 
+    }
+    // jal
+    else if (opcode == "000011") {
+        jump = 1; jalMemToReg = 1; jalRegDst = 1;
     }
     // No matching opcode
     else {
@@ -524,7 +566,7 @@ void Decode(string machineCode, int* pc, int* jump_target) {
         index = stoi(rt, nullptr, 2);
         Rt = &(registerfile[index]);
         cout << "*Rt = " << *Rt << endl;
-
+        
         string rd = inst.substr(16, 5);
         bitset<5> set4(rd);
         cout << "Rd: $" << dec << set4.to_ulong() << endl;
@@ -554,7 +596,10 @@ void Decode(string machineCode, int* pc, int* jump_target) {
             //Convert bitset to decimal and hex
             //cout << "Immediate: " << dec << set7.to_ulong() << " (or 0x" << hex << set7.to_ulong() << ")" << endl;
             int jt = stoi(address, nullptr, 2);
-            *jump_target = jt * 4;
+            offset = jt * 4;
+            Rs = &(registerfile[0]);
+            Rt = &(registerfile[0]);
+            Rd = &(registerfile[0]);
             
         }
         //If opcode is 3, then jal 
@@ -566,8 +611,11 @@ void Decode(string machineCode, int* pc, int* jump_target) {
             string address = inst.substr(6, 26);
             bitset<26> set8(address);
             //cout << "Immediate: " << dec << set8.to_ulong() << " (or 0x" << hex << set8.to_ulong() << ")" << endl;
-            int jt = stoi(address, nullptr, 2);
-            *jump_target = jt * 4;
+            offset = stoi(address, nullptr, 2);
+            cout << "JAL offset = " << offset << endl;
+            Rs = &(registerfile[0]);
+            Rt = &(registerfile[0]);
+            Rd = &(registerfile[0]);
         }
         else {
             //cout << "Instruction Type: I" << endl;
